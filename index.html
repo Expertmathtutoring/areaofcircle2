@@ -52,8 +52,6 @@
     70% {transform: scale(2.5); opacity: 0.9;}
     100% {transform: scale(4); opacity: 0;}
   }
-
-  /* Math Pad */
   .math-pad {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -70,10 +68,7 @@
     cursor: pointer;
     width: 50px; height: 45px;
   }
-  .math-btn:hover {
-    background: #2196f3;
-    color: white;
-  }
+  .math-btn:hover { background: #2196f3; color: white; }
 </style>
 </head>
 <body>
@@ -91,10 +86,9 @@
   <canvas id="shapeCanvas" width="400" height="300"></canvas>
   <div>
     <label for="answer">Enter area: </label>
-    <input type="text" id="answer" placeholder="e.g. 78.5 or π*5*5">
+    <input type="text" id="answer" placeholder="e.g. 78.5 or π*5^2 or 25π">
   </div>
 
-  <!-- Math Pad -->
   <div class="math-pad">
     <button class="math-btn" onclick="insertSymbol('π')">π</button>
     <button class="math-btn" onclick="insertSymbol('+')">+</button>
@@ -106,7 +100,6 @@
     <button class="math-btn" onclick="insertSymbol('^2')">x²</button>
     <button class="math-btn" onclick="clearInput()">C</button>
     <button class="math-btn" onclick="backspace()">⌫</button>
-    <!-- Digits -->
     <button class="math-btn" onclick="insertSymbol('7')">7</button>
     <button class="math-btn" onclick="insertSymbol('8')">8</button>
     <button class="math-btn" onclick="insertSymbol('9')">9</button>
@@ -196,16 +189,37 @@ function calcArea(circle){
   }
 }
 
+// preprocess user input into valid JS
+function preprocessInput(input){
+  let exp=input.trim();
+  exp=exp.replace(/π|pi/gi,"Math.PI");
+  exp=exp.replace(/\^/g,"**");            // allow ^
+  exp=exp.replace(/(\d)(Math\.PI)/g,"$1*$2"); // allow 49π
+  exp=exp.replace(/Math\.PI(\d)/g,"Math.PI*$1"); // allow π7
+  return exp;
+}
+
 function checkAnswer(){
   const circle=filtered[currentIndex];
   const feedback=document.getElementById('feedback');
   const correctValue=calcArea(circle);
-  const userInput=document.getElementById('answer').value.trim();
+  let rawInput=document.getElementById('answer').value.trim();
+  let exp=preprocessInput(rawInput);
 
   let userValue;
-  try{ userValue=eval(userInput.replace(/π/g,"Math.PI")); }catch{ userValue=NaN; }
+  try{ userValue=eval(exp); }catch{ userValue=NaN; }
 
-  if(Math.abs(userValue-correctValue)<0.5){
+  const rounded1=parseFloat(correctValue.toFixed(1));
+  const rounded2=parseFloat(correctValue.toFixed(2));
+  const rounded3=parseFloat(correctValue.toFixed(3));
+
+  const isCorrect =
+    Math.abs(userValue-correctValue)<0.5 ||
+    userValue===rounded1 ||
+    userValue===rounded2 ||
+    userValue===rounded3;
+
+  if(isCorrect){
     feedback.textContent='🎉 Correct!';
     feedback.style.color='green';
     showFireworks();
@@ -238,23 +252,21 @@ function showFireworks(){
   }
 }
 
-// Math pad functions
+// Math pad
 function insertSymbol(sym){
   const input=document.getElementById("answer");
   input.value+=sym;
   input.focus();
 }
-function clearInput(){
-  document.getElementById("answer").value="";
-}
+function clearInput(){ document.getElementById("answer").value=""; }
 function backspace(){
   const input=document.getElementById("answer");
   input.value=input.value.slice(0,-1);
 }
 
-// Enable Enter key
+// Enter key
 document.getElementById("answer").addEventListener("keypress", function(e){
-  if(e.key === "Enter"){ checkAnswer(); }
+  if(e.key==="Enter"){ checkAnswer(); }
 });
 
 // init
@@ -262,3 +274,4 @@ switchMode('radius',{target:document.querySelector('.tab-btn')});
 </script>
 </body>
 </html>
+
