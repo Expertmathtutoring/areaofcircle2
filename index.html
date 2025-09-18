@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚪ Circle Area Game</title>
+<style>
+  body {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    margin: 0; padding: 0;
+    background: linear-gradient(135deg, #89f7fe, #66a6ff);
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
+  }
+  h1 { margin-top: 20px; color: #fff; text-shadow: 2px 2px 5px #0d47a1; }
+  .tabs { margin-top: 15px; }
+  .tab-btn {
+    padding: 10px 20px; margin: 3px;
+    font-size: 16px; border: none;
+    border-radius: 10px; cursor: pointer;
+    background: #1976d2; color: white; font-weight: bold;
+  }
+  .tab-btn.active { background: #0d47a1; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+  .game-card {
+    background: rgba(255,255,255,0.95);
+    padding: 30px; border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    text-align: center; margin-top: 20px;
+    position: relative; overflow: hidden;
+  }
+  canvas { margin: 20px 0; border-radius: 15px; border: 2px solid #0d47a1; background: #fff; }
+  input[type="text"] {
+    padding: 12px; font-size: 18px; width: 260px;
+    border-radius: 10px; border: 2px solid #0d47a1;
+    outline: none; text-align: center;
+  }
+  button {
+    padding: 12px 25px; margin: 10px; font-size: 18px;
+    border: none; border-radius: 15px; cursor: pointer;
+    background: #0d47a1; color: white; font-weight: bold;
+    transition: 0.3s;
+  }
+  button:hover { background: #1976d2; }
+  .feedback { font-size: 22px; font-weight: bold; margin-top: 15px; min-height: 30px; }
+  .progress { font-size: 18px; color: #444; margin-top: 10px; }
+  .firework {
+    position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    pointer-events: none; animation: explode 1.2s forwards;
+  }
+  @keyframes explode {
+    0% {transform: scale(1); opacity: 1;}
+    70% {transform: scale(2.5); opacity: 0.9;}
+    100% {transform: scale(4); opacity: 0;}
+  }
+
+  /* Math Pad */
+  .math-pad {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 15px;
+    justify-items: center;
+  }
+  .math-btn {
+    padding: 10px;
+    font-size: 18px;
+    background: #64b5f6;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 50px; height: 45px;
+  }
+  .math-btn:hover {
+    background: #2196f3;
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+<h1>⚪ Circle Area Game</h1>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchMode('radius', event)">Radius Given</button>
+  <button class="tab-btn" onclick="switchMode('diameter', event)">Diameter Given</button>
+  <button class="tab-btn" onclick="restartGame()">Restart 🔄</button>
+</div>
+
+<div class="game-card">
+  <div class="progress" id="progress"></div>
+  <canvas id="shapeCanvas" width="400" height="300"></canvas>
+  <div>
+    <label for="answer">Enter area: </label>
+    <input type="text" id="answer" placeholder="e.g. 78.5 or π*5*5">
+  </div>
+
+  <!-- Math Pad -->
+  <div class="math-pad">
+    <button class="math-btn" onclick="insertSymbol('π')">π</button>
+    <button class="math-btn" onclick="insertSymbol('+')">+</button>
+    <button class="math-btn" onclick="insertSymbol('-')">−</button>
+    <button class="math-btn" onclick="insertSymbol('*')">×</button>
+    <button class="math-btn" onclick="insertSymbol('/')">÷</button>
+    <button class="math-btn" onclick="insertSymbol('(')">(</button>
+    <button class="math-btn" onclick="insertSymbol(')')">)</button>
+    <button class="math-btn" onclick="insertSymbol('^2')">x²</button>
+    <button class="math-btn" onclick="clearInput()">C</button>
+    <button class="math-btn" onclick="backspace()">⌫</button>
+    <!-- Digits -->
+    <button class="math-btn" onclick="insertSymbol('7')">7</button>
+    <button class="math-btn" onclick="insertSymbol('8')">8</button>
+    <button class="math-btn" onclick="insertSymbol('9')">9</button>
+    <button class="math-btn" onclick="insertSymbol('4')">4</button>
+    <button class="math-btn" onclick="insertSymbol('5')">5</button>
+    <button class="math-btn" onclick="insertSymbol('6')">6</button>
+    <button class="math-btn" onclick="insertSymbol('1')">1</button>
+    <button class="math-btn" onclick="insertSymbol('2')">2</button>
+    <button class="math-btn" onclick="insertSymbol('3')">3</button>
+    <button class="math-btn" onclick="insertSymbol('0')">0</button>
+    <button class="math-btn" onclick="insertSymbol('.')">.</button>
+  </div>
+
+  <div>
+    <button onclick="checkAnswer()">Submit ✅</button>
+  </div>
+  <div id="feedback" class="feedback"></div>
+</div>
+
+<audio id="applause" src="https://www.soundjay.com/human/applause-8.mp3"></audio>
+
+<script>
+function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+const circles = {
+  radius: Array.from({length:10},()=>({r:rand(2,12)})),
+  diameter: Array.from({length:10},()=>({d:rand(4,20)}))
+};
+
+let mode='radius', filtered=[], currentIndex=0;
+
+function switchMode(selected, ev){
+  mode=selected;
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.remove('active'));
+  ev.target.classList.add('active');
+  filtered=circles[mode];
+  shuffle(filtered);
+  currentIndex=0;
+  loadShape();
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+function drawCircle(circle){
+  const ctx=document.getElementById("shapeCanvas").getContext("2d");
+  ctx.clearRect(0,0,400,300);
+  ctx.strokeStyle="#333"; ctx.lineWidth=2; ctx.font="16px Arial"; ctx.fillStyle="#000";
+
+  ctx.beginPath();
+  ctx.arc(200,150,80,0,2*Math.PI);
+  ctx.stroke();
+
+  if(mode==="radius"){
+    ctx.beginPath();
+    ctx.moveTo(200,150);
+    ctx.lineTo(200+80,150);
+    ctx.stroke();
+    ctx.fillText(`r=${circle.r}`,200+40,145);
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(200-80,150);
+    ctx.lineTo(200+80,150);
+    ctx.stroke();
+    ctx.fillText(`d=${circle.d}`,200-10,145);
+  }
+}
+
+function loadShape(){
+  const circle=filtered[currentIndex];
+  drawCircle(circle);
+  document.getElementById('answer').value='';
+  document.getElementById('feedback').textContent='';
+  document.getElementById('progress').textContent=`Question ${currentIndex+1} of ${filtered.length}`;
+}
+
+function calcArea(circle){
+  if(mode==="radius"){
+    return Math.PI*circle.r*circle.r;
+  } else {
+    const r=circle.d/2;
+    return Math.PI*r*r;
+  }
+}
+
+function checkAnswer(){
+  const circle=filtered[currentIndex];
+  const feedback=document.getElementById('feedback');
+  const correctValue=calcArea(circle);
+  const userInput=document.getElementById('answer').value.trim();
+
+  let userValue;
+  try{ userValue=eval(userInput.replace(/π/g,"Math.PI")); }catch{ userValue=NaN; }
+
+  if(Math.abs(userValue-correctValue)<0.5){
+    feedback.textContent='🎉 Correct!';
+    feedback.style.color='green';
+    showFireworks();
+    document.getElementById("applause").play();
+    setTimeout(()=>{
+      currentIndex++;
+      if(currentIndex>=filtered.length){
+        feedback.textContent='🏆 Well done! You finished this set!';
+        shuffle(filtered); currentIndex=0;
+        setTimeout(loadShape,2000);
+      } else loadShape();
+    },1500);
+  } else {
+    feedback.textContent='❌ Try again!';
+    feedback.style.color='red';
+  }
+}
+
+function restartGame(){ shuffle(filtered); currentIndex=0; loadShape(); }
+
+function showFireworks(){
+  for(let i=0;i<15;i++){
+    const fw=document.createElement('div');
+    fw.className='firework';
+    fw.style.left=(100+Math.random()*200)+'px';
+    fw.style.top=(50+Math.random()*150)+'px';
+    fw.style.background=`hsl(${Math.random()*360},100%,50%)`;
+    document.querySelector('.game-card').appendChild(fw);
+    setTimeout(()=>fw.remove(),1200);
+  }
+}
+
+// Math pad functions
+function insertSymbol(sym){
+  const input=document.getElementById("answer");
+  input.value+=sym;
+  input.focus();
+}
+function clearInput(){
+  document.getElementById("answer").value="";
+}
+function backspace(){
+  const input=document.getElementById("answer");
+  input.value=input.value.slice(0,-1);
+}
+
+// Enable Enter key
+document.getElementById("answer").addEventListener("keypress", function(e){
+  if(e.key === "Enter"){ checkAnswer(); }
+});
+
+// init
+switchMode('radius',{target:document.querySelector('.tab-btn')});
+</script>
+</body>
+</html>
