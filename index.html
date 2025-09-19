@@ -60,11 +60,15 @@
   }
   button.submit-btn:hover { background: #1976d2; }
 
-  .feedback { font-size: 22px; font-weight: bold; margin-top: 15px; min-height: 30px; }
+  .feedback {
+    font-size: 22px; font-weight: bold;
+    margin-top: 15px; min-height: 40px;
+    transition: transform 0.3s, color 0.3s;
+  }
 
   .math-pad {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* Changed to 3 columns */
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-top: 10px;
   }
@@ -72,8 +76,9 @@
     padding: 12px; font-size: 18px;
     background: #64b5f6; border: none; border-radius: 8px;
     cursor: pointer; width: 60px; height: 50px;
+    transition: transform 0.2s;
   }
-  .math-btn:hover { background: #2196f3; color: white; }
+  .math-btn:hover { background: #2196f3; color: white; transform: scale(1.1); }
 
   .progress { font-size: 18px; color: #444; margin-bottom: 10px; }
 
@@ -146,6 +151,23 @@ const circles = {
 };
 
 let mode='radius', filtered=[], currentIndex=0;
+let wrongAttempts = 0;
+
+const funFeedback = [
+  "🎉 Brilliant! Math genius unlocked!",
+  "👏 Correct! You nailed it!",
+  "🌟 Excellent work, superstar!",
+  "💯 Perfect calculation!",
+  "✨ You're shining bright in math!"
+];
+
+const wrongFeedback = [
+  "❌ Oops! Check your work again.",
+  "🙁 Not quite, try a different approach.",
+  "⚠️ Remember to square the radius!",
+  "🔎 Don’t forget to multiply by π.",
+  "😅 Almost! Double-check the numbers."
+];
 
 function switchMode(selected, ev){
   mode=selected;
@@ -203,16 +225,40 @@ function checkAnswer(){
   let exp=preprocessInput(rawInput);
   let userValue;
   try{ userValue=eval(exp); }catch{ userValue=NaN; }
+
   const rounded=[1,2,3].map(d=>parseFloat(correctValue.toFixed(d)));
   const isCorrect = Math.abs(userValue-correctValue)<0.5 || rounded.includes(userValue);
+
   if(isCorrect){
-    feedback.textContent='🎉 Correct!'; feedback.style.color='green';
+    wrongAttempts = 0;
+    feedback.textContent=funFeedback[rand(0,funFeedback.length-1)];
+    feedback.style.color='green'; feedback.style.transform='scale(1.2)';
     showFireworks(); document.getElementById("applause").play();
-    setTimeout(()=>{ currentIndex++; if(currentIndex>=filtered.length){
-      feedback.textContent='🏆 Well done! You finished this set!'; shuffle(filtered); currentIndex=0;
-      setTimeout(loadShape,2000);
-    }else loadShape();},1500);
-  } else { feedback.textContent='❌ Try again!'; feedback.style.color='red'; }
+    setTimeout(()=>{ feedback.style.transform='scale(1)'; }, 500);
+    setTimeout(()=>{
+      currentIndex++; 
+      if(currentIndex>=filtered.length){
+        feedback.textContent='🏆 Amazing! You finished all questions!';
+        shuffle(filtered); currentIndex=0;
+        setTimeout(loadShape,2000);
+      } else loadShape();
+    },1500);
+  } else {
+    wrongAttempts++;
+    feedback.textContent=wrongFeedback[rand(0,wrongFeedback.length-1)];
+    feedback.style.color='red'; feedback.style.transform='scale(1.1)';
+    setTimeout(()=>{ feedback.style.transform='scale(1)'; }, 500);
+
+    if(wrongAttempts>=3){
+      wrongAttempts=0;
+      if(mode==="radius"){
+        feedback.textContent=`📝 Formula: A = π × r² → π × ${circle.r}² = ${correctValue.toFixed(2)}`;
+      } else {
+        feedback.textContent=`📝 Formula: A = ¼ × π × d² → ¼ × π × ${circle.d}² = ${correctValue.toFixed(2)}`;
+      }
+      feedback.style.color='blue';
+    }
+  }
 }
 
 function restartGame(){ shuffle(filtered); currentIndex=0; loadShape(); updateHint(); }
@@ -239,5 +285,6 @@ switchMode('radius',{target:document.querySelector('.tab-btn')});
 </script>
 </body>
 </html>
+
 
 
