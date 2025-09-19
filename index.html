@@ -21,28 +21,62 @@
     background: #1976d2; color: white; font-weight: bold;
   }
   .tab-btn.active { background: #0d47a1; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+
   .game-card {
     background: rgba(255,255,255,0.95);
-    padding: 30px; border-radius: 20px;
+    padding: 20px; border-radius: 20px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    text-align: center; margin-top: 20px;
     position: relative; overflow: hidden;
+    max-width: 700px; width: 100%;
+    display: flex; flex-direction: row; justify-content: space-between;
   }
-  canvas { margin: 20px 0; border-radius: 15px; border: 2px solid #0d47a1; background: #fff; }
+
+  .left-panel { flex: 2; text-align: center; }
+  .right-panel { flex: 1; display: flex; flex-direction: column; align-items: center; }
+
+  canvas { margin: 10px 0; border-radius: 15px; border: 2px solid #0d47a1; background: #fff; }
+
+  .hint-box {
+    font-size: 16px;
+    background: #e3f2fd;
+    border: 2px dashed #1976d2;
+    padding: 10px;
+    border-radius: 10px;
+    margin: 10px 0 15px;
+    color: #0d47a1;
+  }
+
   input[type="text"] {
     padding: 12px; font-size: 18px; width: 260px;
     border-radius: 10px; border: 2px solid #0d47a1;
     outline: none; text-align: center;
   }
-  button {
+
+  button.submit-btn {
     padding: 12px 25px; margin: 10px; font-size: 18px;
     border: none; border-radius: 15px; cursor: pointer;
     background: #0d47a1; color: white; font-weight: bold;
     transition: 0.3s;
   }
-  button:hover { background: #1976d2; }
+  button.submit-btn:hover { background: #1976d2; }
+
   .feedback { font-size: 22px; font-weight: bold; margin-top: 15px; min-height: 30px; }
-  .progress { font-size: 18px; color: #444; margin-top: 10px; }
+
+  .math-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Changed to 3 columns */
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .math-btn {
+    padding: 12px; font-size: 18px;
+    background: #64b5f6; border: none; border-radius: 8px;
+    cursor: pointer; width: 60px; height: 50px;
+  }
+  .math-btn:hover { background: #2196f3; color: white; }
+
+  .progress { font-size: 18px; color: #444; margin-bottom: 10px; }
+
   .firework {
     position: absolute; width: 8px; height: 8px; border-radius: 50%;
     pointer-events: none; animation: explode 1.2s forwards;
@@ -52,23 +86,6 @@
     70% {transform: scale(2.5); opacity: 0.9;}
     100% {transform: scale(4); opacity: 0;}
   }
-  .math-pad {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-    margin-top: 15px;
-    justify-items: center;
-  }
-  .math-btn {
-    padding: 10px;
-    font-size: 18px;
-    background: #64b5f6;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    width: 50px; height: 45px;
-  }
-  .math-btn:hover { background: #2196f3; color: white; }
 </style>
 </head>
 <body>
@@ -82,41 +99,40 @@
 </div>
 
 <div class="game-card">
-  <div class="progress" id="progress"></div>
-  <canvas id="shapeCanvas" width="400" height="300"></canvas>
-  <div>
-    <label for="answer">Enter area: </label>
-    <input type="text" id="answer" placeholder="e.g. 78.5 or π*5^2 or 25π">
+  <div class="left-panel">
+    <div class="progress" id="progress"></div>
+    <canvas id="shapeCanvas" width="400" height="300"></canvas>
+    <div id="hint" class="hint-box"></div>
+    <input type="text" id="answer" placeholder="Enter area (e.g. 78.5 or π*5^2)">
+    <button class="submit-btn" onclick="checkAnswer()">Submit ✅</button>
+    <div id="feedback" class="feedback"></div>
   </div>
 
-  <div class="math-pad">
-    <button class="math-btn" onclick="insertSymbol('π')">π</button>
-    <button class="math-btn" onclick="insertSymbol('+')">+</button>
-    <button class="math-btn" onclick="insertSymbol('-')">−</button>
-    <button class="math-btn" onclick="insertSymbol('*')">×</button>
-    <button class="math-btn" onclick="insertSymbol('/')">÷</button>
-    <button class="math-btn" onclick="insertSymbol('(')">(</button>
-    <button class="math-btn" onclick="insertSymbol(')')">)</button>
-    <button class="math-btn" onclick="insertSymbol('^2')">x²</button>
-    <button class="math-btn" onclick="clearInput()">C</button>
-    <button class="math-btn" onclick="backspace()">⌫</button>
-    <button class="math-btn" onclick="insertSymbol('7')">7</button>
-    <button class="math-btn" onclick="insertSymbol('8')">8</button>
-    <button class="math-btn" onclick="insertSymbol('9')">9</button>
-    <button class="math-btn" onclick="insertSymbol('4')">4</button>
-    <button class="math-btn" onclick="insertSymbol('5')">5</button>
-    <button class="math-btn" onclick="insertSymbol('6')">6</button>
-    <button class="math-btn" onclick="insertSymbol('1')">1</button>
-    <button class="math-btn" onclick="insertSymbol('2')">2</button>
-    <button class="math-btn" onclick="insertSymbol('3')">3</button>
-    <button class="math-btn" onclick="insertSymbol('0')">0</button>
-    <button class="math-btn" onclick="insertSymbol('.')">.</button>
+  <div class="right-panel">
+    <div class="math-pad">
+      <button class="math-btn" onclick="insertSymbol('π')">π</button>
+      <button class="math-btn" onclick="insertSymbol('+')">+</button>
+      <button class="math-btn" onclick="insertSymbol('-')">−</button>
+      <button class="math-btn" onclick="insertSymbol('*')">×</button>
+      <button class="math-btn" onclick="insertSymbol('/')">÷</button>
+      <button class="math-btn" onclick="insertSymbol('(')">(</button>
+      <button class="math-btn" onclick="insertSymbol(')')">)</button>
+      <button class="math-btn" onclick="insertSymbol('^2')">x²</button>
+      <button class="math-btn" onclick="insertSymbol('7')">7</button>
+      <button class="math-btn" onclick="insertSymbol('8')">8</button>
+      <button class="math-btn" onclick="insertSymbol('9')">9</button>
+      <button class="math-btn" onclick="insertSymbol('4')">4</button>
+      <button class="math-btn" onclick="insertSymbol('5')">5</button>
+      <button class="math-btn" onclick="insertSymbol('6')">6</button>
+      <button class="math-btn" onclick="insertSymbol('1')">1</button>
+      <button class="math-btn" onclick="insertSymbol('2')">2</button>
+      <button class="math-btn" onclick="insertSymbol('3')">3</button>
+      <button class="math-btn" onclick="insertSymbol('0')">0</button>
+      <button class="math-btn" onclick="insertSymbol('.')">.</button>
+      <button class="math-btn" onclick="clearInput()">C</button>
+      <button class="math-btn" onclick="backspace()">⌫</button>
+    </div>
   </div>
-
-  <div>
-    <button onclick="checkAnswer()">Submit ✅</button>
-  </div>
-  <div id="feedback" class="feedback"></div>
 </div>
 
 <audio id="applause" src="https://www.soundjay.com/human/applause-8.mp3"></audio>
@@ -139,63 +155,43 @@ function switchMode(selected, ev){
   shuffle(filtered);
   currentIndex=0;
   loadShape();
+  updateHint();
 }
 
-function shuffle(arr){
-  for(let i=arr.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
-  }
-}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];}}
 
 function drawCircle(circle){
   const ctx=document.getElementById("shapeCanvas").getContext("2d");
   ctx.clearRect(0,0,400,300);
   ctx.strokeStyle="#333"; ctx.lineWidth=2; ctx.font="16px Arial"; ctx.fillStyle="#000";
-
   ctx.beginPath();
-  ctx.arc(200,150,80,0,2*Math.PI);
-  ctx.stroke();
-
+  ctx.arc(200,150,80,0,2*Math.PI); ctx.stroke();
   if(mode==="radius"){
-    ctx.beginPath();
-    ctx.moveTo(200,150);
-    ctx.lineTo(200+80,150);
-    ctx.stroke();
-    ctx.fillText(`r=${circle.r}`,200+40,145);
+    ctx.beginPath(); ctx.moveTo(200,150); ctx.lineTo(280,150); ctx.stroke();
+    ctx.fillText(`r=${circle.r}`,240,145);
   } else {
-    ctx.beginPath();
-    ctx.moveTo(200-80,150);
-    ctx.lineTo(200+80,150);
-    ctx.stroke();
-    ctx.fillText(`d=${circle.d}`,200-10,145);
+    ctx.beginPath(); ctx.moveTo(120,150); ctx.lineTo(280,150); ctx.stroke();
+    ctx.fillText(`d=${circle.d}`,195,145);
   }
 }
 
 function loadShape(){
-  const circle=filtered[currentIndex];
-  drawCircle(circle);
+  drawCircle(filtered[currentIndex]);
   document.getElementById('answer').value='';
   document.getElementById('feedback').textContent='';
   document.getElementById('progress').textContent=`Question ${currentIndex+1} of ${filtered.length}`;
 }
 
-function calcArea(circle){
-  if(mode==="radius"){
-    return Math.PI*circle.r*circle.r;
-  } else {
-    const r=circle.d/2;
-    return Math.PI*r*r;
-  }
-}
+function updateHint(){ document.getElementById("hint").textContent=mode==="radius"?"Hint: Area = π × r²":"Hint: Area = ¼ × π × d²"; }
 
-// preprocess user input into valid JS
+function calcArea(circle){ return mode==="radius"?Math.PI*circle.r*circle.r:Math.PI*(circle.d/2)**2; }
+
 function preprocessInput(input){
   let exp=input.trim();
   exp=exp.replace(/π|pi/gi,"Math.PI");
-  exp=exp.replace(/\^/g,"**");            // allow ^
-  exp=exp.replace(/(\d)(Math\.PI)/g,"$1*$2"); // allow 49π
-  exp=exp.replace(/Math\.PI(\d)/g,"Math.PI*$1"); // allow π7
+  exp=exp.replace(/\^/g,"**");
+  exp=exp.replace(/(\d)(Math\.PI)/g,"$1*$2");
+  exp=exp.replace(/Math\.PI(\d)/g,"Math.PI*$1");
   return exp;
 }
 
@@ -205,40 +201,21 @@ function checkAnswer(){
   const correctValue=calcArea(circle);
   let rawInput=document.getElementById('answer').value.trim();
   let exp=preprocessInput(rawInput);
-
   let userValue;
   try{ userValue=eval(exp); }catch{ userValue=NaN; }
-
-  const rounded1=parseFloat(correctValue.toFixed(1));
-  const rounded2=parseFloat(correctValue.toFixed(2));
-  const rounded3=parseFloat(correctValue.toFixed(3));
-
-  const isCorrect =
-    Math.abs(userValue-correctValue)<0.5 ||
-    userValue===rounded1 ||
-    userValue===rounded2 ||
-    userValue===rounded3;
-
+  const rounded=[1,2,3].map(d=>parseFloat(correctValue.toFixed(d)));
+  const isCorrect = Math.abs(userValue-correctValue)<0.5 || rounded.includes(userValue);
   if(isCorrect){
-    feedback.textContent='🎉 Correct!';
-    feedback.style.color='green';
-    showFireworks();
-    document.getElementById("applause").play();
-    setTimeout(()=>{
-      currentIndex++;
-      if(currentIndex>=filtered.length){
-        feedback.textContent='🏆 Well done! You finished this set!';
-        shuffle(filtered); currentIndex=0;
-        setTimeout(loadShape,2000);
-      } else loadShape();
-    },1500);
-  } else {
-    feedback.textContent='❌ Try again!';
-    feedback.style.color='red';
-  }
+    feedback.textContent='🎉 Correct!'; feedback.style.color='green';
+    showFireworks(); document.getElementById("applause").play();
+    setTimeout(()=>{ currentIndex++; if(currentIndex>=filtered.length){
+      feedback.textContent='🏆 Well done! You finished this set!'; shuffle(filtered); currentIndex=0;
+      setTimeout(loadShape,2000);
+    }else loadShape();},1500);
+  } else { feedback.textContent='❌ Try again!'; feedback.style.color='red'; }
 }
 
-function restartGame(){ shuffle(filtered); currentIndex=0; loadShape(); }
+function restartGame(){ shuffle(filtered); currentIndex=0; loadShape(); updateHint(); }
 
 function showFireworks(){
   for(let i=0;i<15;i++){
@@ -252,26 +229,15 @@ function showFireworks(){
   }
 }
 
-// Math pad
-function insertSymbol(sym){
-  const input=document.getElementById("answer");
-  input.value+=sym;
-  input.focus();
-}
+function insertSymbol(sym){ const input=document.getElementById("answer"); input.value+=sym; input.focus(); }
 function clearInput(){ document.getElementById("answer").value=""; }
-function backspace(){
-  const input=document.getElementById("answer");
-  input.value=input.value.slice(0,-1);
-}
+function backspace(){ const input=document.getElementById("answer"); input.value=input.value.slice(0,-1); }
 
-// Enter key
-document.getElementById("answer").addEventListener("keypress", function(e){
-  if(e.key==="Enter"){ checkAnswer(); }
-});
+document.getElementById("answer").addEventListener("keypress", function(e){ if(e.key==="Enter"){ checkAnswer(); } });
 
-// init
 switchMode('radius',{target:document.querySelector('.tab-btn')});
 </script>
 </body>
 </html>
+
 
